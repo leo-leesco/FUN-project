@@ -2,8 +2,7 @@
  (modules lexer))
 
 (menhir
- (modules parser)
- (flags --explain))
+ (modules parser))
 
 (executable
  (public_name joujou.exe)
