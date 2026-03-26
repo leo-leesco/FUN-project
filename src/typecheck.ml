@@ -68,8 +68,40 @@ let rec infer (* [infer] expects... *)
       info := Some { domain; codomain };
       check p xenv tsubst tenv jenv term2 domain;
       codomain
-  | _ ->
-      failwith "TYPECHECKING IS NOT IMPLEMENTED YET!" (* do something here! *)
+  | TeLet (x, term1, term2) ->
+      let ty1 = infer p xenv loc tsubst tenv jenv term1 in
+      let tenv = bind x ty1 tenv in
+      infer p xenv loc tsubst tenv jenv term2
+  | TeTyAbs (a, body) ->
+      let xenv = Export.bind xenv a in
+      let body_ty = infer p xenv loc tsubst tenv jenv body in
+      TyForall (abstract a body_ty)
+  | TeTyApp (term, type_arg, info) ->
+      let ty = infer p xenv loc tsubst tenv jenv term in
+      let gen = deconstruct_univ xenv loc ty in
+      info := Some { gen };
+      fill gen type_arg
+  | TeData (dc, type_args, terms, info) ->
+      let dcty = lookup_and_instantiate p xenv loc dc type_args in
+      let domains, codomain =
+        deconstruct_data_arrow xenv loc dc dcty (List.length terms)
+      in
+      List.iter2
+        (fun t dom -> check p xenv tsubst tenv jenv t dom)
+        terms domains;
+      info := Some codomain;
+      codomain
+  | TeTyAnnot (term, expected_ty) ->
+      check p xenv tsubst tenv jenv term expected_ty;
+      expected_ty
+  | TeMatch (scrutinee, ret_ty, clauses, info) ->
+      let scrutinee_ty = infer p xenv loc tsubst tenv jenv scrutinee in
+      List.iter
+        (check_clause p xenv tsubst tenv jenv scrutinee_ty ret_ty)
+        clauses;
+      info := Some ret_ty;
+      ret_ty
+  | TeLoc (new_loc, term) -> infer p xenv new_loc tsubst tenv jenv term
 
 and check (* [check] expects... *)
     (p : pre_program)
@@ -90,7 +122,9 @@ and check (* [check] expects... *)
   match term with
   | TeLoc (loc, term) ->
       let inferred = infer p xenv loc tsubst tenv jenv term in
-      failwith "CHECK IS NOT COMPLETE YET!" (* do something here! *)
+
+      if not (TS.equal tsubst inferred expected) then
+        Typerr.mismatch xenv loc expected inferred
   | _ ->
       (* out of luck! We run in degraded mode, location will be wrong!
         This should only happen on simplified terms. *)
