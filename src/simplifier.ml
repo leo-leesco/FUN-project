@@ -155,7 +155,30 @@ and simplify1 (args : context) (Scope (subst, tsubst, term) : fterm scoped) :
       simplify1 args (Scope (subst, tsubst, scrutinee))
   (* 2. Contract the context as much as possible *)
   (*    rule (\beta), (\beta_\tau), (\case), etc. *)
-  | _ when false -> failwith "Simplify the context here!"
+  | TeAbs (x, _domain, body) -> (
+      match args with
+      | CtxtApp (Scope (subst_v, tsubst_v, (v, _info)), args_rest) ->
+          (* (λx: domain. body) v  =>  let x = v in body *)
+          let v = simplify (Scope (subst_v, tsubst_v, v)) in
+
+          let body = simplify (Scope (subst, tsubst, body)) in
+
+          apply (TeLet (x, v, body)) args_rest
+      | _ ->
+          let term = simplify2 (Scope (subst, tsubst, term)) in
+          apply term args)
+  | TeTyAbs (a, body) -> (
+      match args with
+      | CtxtTyApp (Scope (subst_phi, tsubst_phi, (phi, _info)), args_rest) ->
+          (* (Λa. body) [phi]  =>  body {phi / a} *)
+          let phi_eval = Tsubst.apply tsubst_phi phi in
+
+          let tsubst_body = Tsubst.bind a phi_eval tsubst in
+
+          simplify1 args_rest (Scope (subst, tsubst_body, body))
+      | _ ->
+          let term = simplify2 (Scope (subst, tsubst, term)) in
+          apply term args)
   | _ ->
       (* 3. Structural rules *)
       let term = simplify2 (Scope (subst, tsubst, term)) in
