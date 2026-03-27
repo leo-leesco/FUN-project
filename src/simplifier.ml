@@ -158,18 +158,19 @@ and simplify1 (args : context) (Scope (subst, tsubst, term) : fterm scoped) :
   | TeAbs (x, _domain, body) -> (
       match args with
       | CtxtApp (Scope (subst_v, tsubst_v, (v, _info)), args_rest) ->
+          (* β + (inline) + (drop) *)
           (* (λx: domain. body) v  =>  let x = v in body *)
           let v = simplify (Scope (subst_v, tsubst_v, v)) in
 
-          let body = simplify (Scope (subst, tsubst, body)) in
-
-          apply (TeLet (x, v, body)) args_rest
+          let subst = Subst.bind x v subst in
+          simplify1 args_rest (Scope (subst, tsubst, body))
       | _ ->
           let term = simplify2 (Scope (subst, tsubst, term)) in
           apply term args)
   | TeTyAbs (a, body) -> (
       match args with
       | CtxtTyApp (Scope (subst_phi, tsubst_phi, (phi, _info)), args_rest) ->
+          (* βτ *)
           (* (Λa. body) [phi]  =>  body {phi / a} *)
           let phi_eval = Tsubst.apply tsubst_phi phi in
 
