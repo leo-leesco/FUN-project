@@ -196,8 +196,10 @@ and simplify2 (Scope (subst, tsubst, term) : fterm scoped) : pre_fterm =
   match term with
   | TeLet (x, term1, term2) ->
       let term1 = simplify (Scope (subst, tsubst, term1)) in
-      let term2 = simplify (Scope (subst, tsubst, term2)) in
-      TeLet (x, term1, term2)
+      (* inline *)
+      let subst_inline = Subst.bind x term1 subst in
+      (* drop *)
+      simplify (Scope (subst_inline, tsubst, term2))
   | TeVar (x, info) -> Subst.lookup x (TeVar (x, reset ())) subst
   | TeAbs (x, domain, body) ->
       let domain = Tsubst.apply tsubst domain in
