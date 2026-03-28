@@ -174,17 +174,15 @@ let rec pterm0 env = function
       kmatch ^^ pterm env term ^^ return ^^ pty env ty ^^ kwith
       ^^ concat_map (pclause env) clauses
       ^^ kend
-  | TeJoin (j, tyvars, tevars, u, e) ->
-      let env_e = Export.bind env j in
+  | TeJump (j, tyargs, args, ret_ty, _) ->
+      let print_tyarg ty = space ^^ string "[" ^^ pty env ty ^^ string "]" in
 
-      let env_u = List.fold_left Export.bind env tyvars in
-      let env_u =
-        List.fold_left (fun acc (x, _) -> Export.bind acc x) env_u tevars
-      in
-
-      definition
-        (string "join" ^^ space ^^ pvar env j ^^ space ^^ equal)
-        (pterm env_u u) (pterm env_e e)
+      parens
+        (string "jump" ^^ space ^^ pvar env j
+        ^^ concat_map print_tyarg tyargs
+        ^^ space
+        ^^ pfields (pterm env) args
+        ^^ space ^^ colon ^^ space ^^ pty env ret_ty)
   | term -> parens (pterm env term)
 
 and pterm1 env term =
@@ -221,6 +219,30 @@ and pterm env term =
         definition
           (string "let" ^^ line ^^ pvar env x ^^ equal)
           term1 (pterm env term2)
+    | TeJoin (j, tyvars, tevars, u, e) ->
+        let env_e = Export.bind env j in
+
+        let env_u = List.fold_left Export.bind env tyvars in
+        let env_u =
+          List.fold_left (fun acc (x, _) -> Export.bind acc x) env_u tevars
+        in
+
+        let u_body, oty =
+          match u with TeTyAnnot (body, ty) -> (body, Some ty) | _ -> (u, None)
+        in
+
+        let print_tyvar a = space ^^ string "[" ^^ pvar env_u a ^^ string "]" in
+        let print_tevar (x, ty) =
+          space ^^ parens (pvar env_u x ^^ colon ^^ pty env_u ty)
+        in
+
+        definition
+          (string "join" ^^ space ^^ pvar env_e j
+          ^^ concat_map print_tyvar tyvars
+          ^^ concat_map print_tevar tevars
+          ^^ optional (fun ty -> space ^^ colon ^^ space ^^ pty env_u ty) oty
+          ^^ space ^^ equal)
+          (pterm env_u u_body) (pterm env_e e)
     | _ -> pterm1 env term)
 
 (* ------------------------------------------------------------------------- *)

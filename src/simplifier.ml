@@ -188,7 +188,7 @@ and simplify1 (args : context) (Scope (subst, tsubst, term) : fterm scoped) :
       TeJump (j, tyargs, jump_args_eval, type_of_cont args, reset ())
   (* E[ join j = u in e ]  =>  join j = u in E[ e ] *)
   | TeJoin (j, tyvars, tevars, u, e) ->
-      let u_eval = simplify (Scope (subst, tsubst, u)) in
+      let u_eval = simplify1 args (Scope (subst, tsubst, u)) in
       let e_eval = simplify1 args (Scope (subst, tsubst, e)) in
 
       TeJoin (j, tyvars, tevars, u_eval, e_eval)
