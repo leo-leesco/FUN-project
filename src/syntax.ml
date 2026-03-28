@@ -87,9 +87,14 @@ type fterm =
   | SynTeMatch of fterm * ftype * clause list
     (* match t return T with clause ... clause end *)
   | SynTeLoc of location * fterm
-(* t *)
-(* the parser generates [SynTeLoc] nodes to keep track of locations
+  (* t *)
+  (* the parser generates [SynTeLoc] nodes to keep track of locations
 	 within the source code. *)
+  | SynTeJoin of
+      identifier * identifier list * (identifier * ftype) list * fterm * fterm
+  (* join [rec] j [ a ] (x : T) = u in e *)
+  | SynTeJump of identifier * ftype list * fterm list * ftype
+(* jump j [ T ] { t } : T *)
 
 and clause = SynClause of pattern * fterm
 (* p -> t *)

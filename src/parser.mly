@@ -214,6 +214,8 @@ term0:
     { SynTeVar x }
 | d = data_constructor tys = multiple(actual_type_arguments) LBRACE fields = semi(loc(term)) RBRACE
     { SynTeData (d, tys, fields) }
+| JUMP j = term_variable tys = multiple(actual_type_arguments) LBRACE args = semi(loc(term)) RBRACE COLON ret_ty = typ
+    { SynTeJump (j, tys, args, ret_ty) }
 | LPAR t = term RPAR
     { t }
 | LPAR t = loc(term) COLON ty = typ RPAR
@@ -234,6 +236,8 @@ term:
     { t }
 | FUN def = def
     { def }
+| JOIN j = term_variable ty_args = multiple(formal_type_arguments) te_args = multiple(term_arguments) EQ t1 = loc(term) IN t2 = loc(term)
+    { SynTeJoin (j, ty_args, te_args, t1, t2) }
 
 (* The following form could have been primitive, but is subsumed by the
    syntactic sugar that follows.

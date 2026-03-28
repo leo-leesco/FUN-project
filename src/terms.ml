@@ -90,9 +90,19 @@ type ('a, 'b, 'c, 'd, 'e, 'f) _fterm =
   (* typechecker meta-data *)
   (* match t return T with clause ... clause end *)
   | TeLoc of location * ('a, 'b, 'c, 'd, 'e, 'f) _fterm
-(* t *)
-(* the parser generates [TeLoc] nodes to keep track of locations
+  (* t *)
+  (* the parser generates [TeLoc] nodes to keep track of locations
 	 within the source code. *)
+  (* join j [tyvars] (vars: types) = body in scope *)
+  | TeJoin of
+      atom
+      * atom list
+      * (atom * ftype) list
+      * ('a, 'b, 'c, 'd, 'e, 'f) _fterm
+      * ('a, 'b, 'c, 'd, 'e, 'f) _fterm
+  (* jump j [tyargs] args : return_type *)
+  | TeJump of
+      atom * ftype list * ('a, 'b, 'c, 'd, 'e, 'f) _fterm list * ftype * 'b
 
 and ('a, 'b, 'c, 'd, 'e, 'f) _clause =
   | Clause of 'f _pattern * ('a, 'b, 'c, 'd, 'e, 'f) _fterm
