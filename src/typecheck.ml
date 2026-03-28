@@ -102,6 +102,45 @@ let rec infer (* [infer] expects... *)
       info := Some ret_ty;
       ret_ty
   | TeLoc (new_loc, term) -> infer p xenv new_loc tsubst tenv jenv term
+  | TeJoin (j, tyvars, tevars, u, e) ->
+      let arg_types = List.map snd tevars in
+
+      let jenv_with_j = jbind j tyvars arg_types jenv in
+
+      let xenv_for_u = List.fold_left Export.bind xenv tyvars in
+      let tenv_for_u = binds tevars tenv in
+
+      let e_ty = infer p xenv loc tsubst tenv jenv_with_j e in
+
+      check p xenv_for_u tsubst tenv_for_u jenv u e_ty;
+
+      e_ty
+  | TeJump (j, tyargs, args, ret_ty, info) ->
+      let formal_tyvars, formal_arg_types = jlookup j jenv in
+
+      let expected_ty_count = List.length formal_tyvars in
+      let found_ty_count = List.length tyargs in
+      if expected_ty_count <> found_ty_count then
+        arity_mismatch xenv loc "join point" j "type" expected_ty_count
+          found_ty_count;
+
+      let expected_arg_count = List.length formal_arg_types in
+      let found_arg_count = List.length args in
+      if expected_arg_count <> found_arg_count then
+        arity_mismatch xenv loc "join point" j "term" expected_arg_count
+          found_arg_count;
+
+      let instantiation_pairs = List.combine formal_tyvars tyargs in
+      let instantiation_subst = TS.binds instantiation_pairs TS.empty in
+      let instantiated_arg_types =
+        List.map (TS.apply instantiation_subst) formal_arg_types
+      in
+
+      List.iter2
+        (fun arg expected_ty -> check p xenv tsubst tenv jenv arg expected_ty)
+        args instantiated_arg_types;
+
+      ret_ty
 
 and check (* [check] expects... *)
     (p : pre_program)
