@@ -180,6 +180,29 @@ and simplify1 (args : context) (Scope (subst, tsubst, term) : fterm scoped) :
       | _ ->
           let term = simplify2 (Scope (subst, tsubst, term)) in
           apply term args)
+  | TeJump (j, tyargs, jump_args, _ret_ty, info) ->
+      let tyargs = List.map (Tsubst.apply tsubst) tyargs in
+      let jump_args_eval =
+        List.map (fun arg -> simplify (Scope (subst, tsubst, arg))) jump_args
+      in
+      TeJump (j, tyargs, jump_args_eval, type_of_cont args, reset ())
+  (* E[ join j = u in e ]  =>  join j = u in E[ e ] *)
+  | TeJoin (j, tyvars, tevars, u, e) ->
+      let safe_tsubst =
+        List.fold_left
+          (fun acc a -> Tsubst.bind a (TyFreeVar a) acc)
+          tsubst tyvars
+      in
+      let safe_subst =
+        List.fold_left
+          (fun acc (x, _) -> Subst.bind x (TeVar (x, reset ())) acc)
+          subst tevars
+      in
+
+      let u_eval = simplify (Scope (safe_subst, safe_tsubst, u)) in
+      let e_eval = simplify1 args (Scope (subst, tsubst, e)) in
+
+      TeJoin (j, tyvars, tevars, u_eval, e_eval)
   | _ ->
       (* 3. Structural rules *)
       let term = simplify2 (Scope (subst, tsubst, term)) in
