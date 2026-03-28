@@ -240,11 +240,9 @@ and simplify2 (Scope (subst, tsubst, term) : fterm scoped) : pre_fterm =
   | TeVar (x, info) -> Subst.lookup x (TeVar (x, reset ())) subst
   | TeAbs (x, domain, body) ->
       let domain = Tsubst.apply tsubst domain in
-      let subst = Subst.bind x (TeVar (x, reset ())) subst in
       let body = simplify (Scope (subst, tsubst, body)) in
       TeAbs (x, domain, body)
   | TeTyAbs (a, body) ->
-      let tsubst = Tsubst.bind a (TyFreeVar a) tsubst in
       let body = simplify (Scope (subst, tsubst, body)) in
       TeTyAbs (a, body)
   | TeData (dc, tys, fields, info) ->
