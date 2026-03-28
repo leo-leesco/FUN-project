@@ -180,6 +180,42 @@ and simplify1 (args : context) (Scope (subst, tsubst, term) : fterm scoped) :
       | _ ->
           let term = simplify2 (Scope (subst, tsubst, term)) in
           apply term args)
+  | TeData (dc, tys, fields, info) -> (
+      match args with
+      | CtxtMatch
+          (Scope (subst_m, tsubst_m, (_result_ty, clauses, _info)), args_rest)
+        ->
+          (* (case) + (inline) + (drop) *)
+          let rec find_clause = function
+            | [] -> failwith "Inexhaustive match: constructor not found"
+            | Clause (PatData (_, dc_pat, tyvars_pat, tevars_pat, _), body)
+              :: rest
+              when dc = dc_pat ->
+                (tyvars_pat, tevars_pat, body)
+            | _ :: rest -> find_clause rest
+          in
+          let tyvars_pat, tevars_pat, body = find_clause clauses in
+
+          let eval_tys = List.map (Tsubst.apply tsubst) tys in
+          let eval_fields =
+            List.map (fun f -> simplify (Scope (subst, tsubst, f))) fields
+          in
+
+          let tsubst_body =
+            List.fold_left2
+              (fun acc a ty -> Tsubst.bind a ty acc)
+              tsubst_m tyvars_pat eval_tys
+          in
+          let subst_body =
+            List.fold_left2
+              (fun acc x v -> Subst.bind x v acc)
+              subst_m tevars_pat eval_fields
+          in
+
+          simplify1 args_rest (Scope (subst_body, tsubst_body, body))
+      | _ ->
+          let term = simplify2 (Scope (subst, tsubst, term)) in
+          apply term args)
   | _ ->
       (* 3. Structural rules *)
       let term = simplify2 (Scope (subst, tsubst, term)) in
