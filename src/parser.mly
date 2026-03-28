@@ -236,8 +236,15 @@ term:
     { t }
 | FUN def = def
     { def }
-| JOIN j = term_variable ty_args = multiple(formal_type_arguments) te_args = multiple(term_arguments) EQ t1 = loc(term) IN t2 = loc(term)
-    { SynTeJoin (j, ty_args, te_args, t1, t2) }
+| JOIN j = term_variable
+  ty_args = multiple(formal_type_arguments) 
+  te_args = multiple(term_arguments)
+  codomain = preceded(COLON, typ)?
+  EQ t1 = loc(term) IN t2 = loc(term)
+  {
+    let t1_annotated = otyannot t1 codomain in
+    SynTeJoin (j, ty_args, te_args, t1_annotated, t2)
+  }
 
 (* The following form could have been primitive, but is subsumed by the
    syntactic sugar that follows.

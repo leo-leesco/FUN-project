@@ -174,6 +174,17 @@ let rec pterm0 env = function
       kmatch ^^ pterm env term ^^ return ^^ pty env ty ^^ kwith
       ^^ concat_map (pclause env) clauses
       ^^ kend
+  | TeJoin (j, tyvars, tevars, u, e) ->
+      let env_e = Export.bind env j in
+
+      let env_u = List.fold_left Export.bind env tyvars in
+      let env_u =
+        List.fold_left (fun acc (x, _) -> Export.bind acc x) env_u tevars
+      in
+
+      definition
+        (string "join" ^^ space ^^ pvar env j ^^ space ^^ equal)
+        (pterm env_u u) (pterm env_e e)
   | term -> parens (pterm env term)
 
 and pterm1 env term =

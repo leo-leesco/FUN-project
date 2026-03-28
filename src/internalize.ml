@@ -118,6 +118,40 @@ let rec iterm tctable env = function
           iclauses tctable env clauses,
           ref None )
   | SynTeLoc (loc, t) -> TeLoc (loc, iterm tctable env t)
+  | SynTeJoin (j, tyvars, tevars, u, e) ->
+      let j_atom, env_e = bind env j in
+
+      let env_u, tyvars_atoms =
+        List.fold_left
+          (fun (e_acc, list_acc) a ->
+            let a_atom, e_new = bind e_acc a in
+            (e_new, a_atom :: list_acc))
+          (env, []) tyvars
+      in
+      let tyvars_atoms = List.rev tyvars_atoms in
+
+      let env_u, tevars_atoms =
+        List.fold_left
+          (fun (e_acc, list_acc) (x, ty) ->
+            let x_atom, e_new = bind e_acc x in
+            let ty_int = itype tctable env_u ty in
+            (e_new, (x_atom, ty_int) :: list_acc))
+          (env_u, []) tevars
+      in
+      let tevars_atoms = List.rev tevars_atoms in
+
+      let u_int = iterm tctable env_u u in
+      let e_int = iterm tctable env_e e in
+
+      TeJoin (j_atom, tyvars_atoms, tevars_atoms, u_int, e_int)
+  | SynTeJump (j, tyargs, args, ret_ty) ->
+      let j_atom = Import.resolve env j in
+
+      let tyargs_int = List.map (itype tctable env) tyargs in
+      let args_int = List.map (iterm tctable env) args in
+      let ret_ty_int = itype tctable env ret_ty in
+
+      TeJump (j_atom, tyargs_int, args_int, ret_ty_int, ref None)
 
 and iterms tctable env terms = List.map (iterm tctable env) terms
 and iclauses tctable env clauses = List.map (iclause tctable env) clauses

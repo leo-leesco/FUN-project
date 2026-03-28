@@ -102,7 +102,7 @@ type ('a, 'b, 'c, 'd, 'e, 'f) _fterm =
       * ('a, 'b, 'c, 'd, 'e, 'f) _fterm
   (* jump j [tyargs] args : return_type *)
   | TeJump of
-      atom * ftype list * ('a, 'b, 'c, 'd, 'e, 'f) _fterm list * ftype * 'b
+      atom * ftype list * ('a, 'b, 'c, 'd, 'e, 'f) _fterm list * ftype * 'f
 
 and ('a, 'b, 'c, 'd, 'e, 'f) _clause =
   | Clause of 'f _pattern * ('a, 'b, 'c, 'd, 'e, 'f) _fterm

@@ -140,6 +140,8 @@ let rec infer (* [infer] expects... *)
         (fun arg expected_ty -> check p xenv tsubst tenv jenv arg expected_ty)
         args instantiated_arg_types;
 
+      info := Some [ ret_ty ];
+
       ret_ty
 
 and check (* [check] expects... *)
@@ -293,3 +295,5 @@ let rec type_of (term : fterm) : ftype =
   | TeMatch (_, ty, _, _) -> ty
   | TeTyAnnot (_, ty) -> ty
   | TeLoc (_, term) -> type_of term
+  | TeJoin (_, _, _, _, e) -> type_of e
+  | TeJump (_, _, _, ret_ty, _) -> ret_ty
