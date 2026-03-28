@@ -214,6 +214,27 @@ and simplify2 (Scope (subst, tsubst, term) : fterm scoped) : pre_fterm =
       let local_simplify t = simplify (Scope (subst, tsubst, t)) in
       let fields = List.map local_simplify fields in
       TeData (dc, tys, fields, reset ())
+  | TeJoin (j, tyvars, tevars, u, e) ->
+      let safe_tsubst =
+        List.fold_left
+          (fun acc a -> Tsubst.bind a (TyFreeVar a) acc)
+          tsubst tyvars
+      in
+      let safe_subst =
+        List.fold_left
+          (fun acc (x, _) -> Subst.bind x (TeVar (x, reset ())) acc)
+          subst tevars
+      in
+
+      let u = simplify (Scope (subst, tsubst, u)) in
+      let e = simplify (Scope (safe_subst, safe_tsubst, e)) in
+      TeJoin (j, tyvars, tevars, u, e)
+  | TeJump (j, tyargs, jump_args, ret_ty, info) ->
+      let tyargs = List.map (Tsubst.apply tsubst) tyargs in
+      let args =
+        List.map (fun arg -> simplify (Scope (subst, tsubst, arg))) jump_args
+      in
+      TeJump (j, tyargs, args, ret_ty, reset ())
   | _ -> assert false
 
 (* [simplify_clause scrutinee clause] propagates simplification to the
